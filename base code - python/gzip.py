@@ -120,7 +120,7 @@ class GZIP:
 	bits_buffer = 0
 	available_bits = 0		
 
-	
+
 	def __init__(self, filename):
 		self.gzFile = filename
 		self.f = open(filename, 'rb')
@@ -128,8 +128,8 @@ class GZIP:
 		self.fileSize = self.f.tell()
 		self.f.seek(0)
 
-		
-	
+
+
 
 	def decompress(self):
 		''' main function for decompressing the gzip file with deflate algorithm '''
@@ -153,26 +153,35 @@ class GZIP:
 		# MAIN LOOP - decode block by block
 		BFINAL = 0	
 		while not BFINAL == 1:	
-			
+      
 			BFINAL = self.readBits(1)
-							
+			
 			BTYPE = self.readBits(2)					
 			if BTYPE != 2:
 				print('Error: Block %d not coded with Huffman Dynamic coding' % (numBlocks+1))
 				return
 			
-									
-			#--- STUDENTS --- ADD CODE HERE
-			# 
-			# 
-	
+			#--- STUDENTS --- ADD CODE HERE 
+   
+			HLIT = self.readBits(5)
+			HDIST = self.readBits(5)
+			HCLEN = self.readBits(4)
 			
-																																								
+			print("HLIT: " + bin(HLIT)[2:] + "\nHDIST: " + bin(HDIST)[2:] + "\nHCLEN: " + bin(HCLEN)[2:])
+				
+			idxClenArray = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]
+			clenArray = [0 for i in range(18)]
+
+			for i in range(0, HCLEN+4):
+				temp = self.readBits(3)
+				clenArray[idxClenArray.index(i)] = temp
+			print(clenArray)
+   
+   
 			# update number of blocks read
 			numBlocks += 1
-		
+   
 
-		
 		# close file			
 		
 		self.f.close()	
@@ -230,7 +239,7 @@ class GZIP:
 if __name__ == '__main__':
 
 	# gets filename from command line if provided
-	filename = "FAQ.txt.gz"
+	fileName = "FAQ.txt.gz"
 	if len(sys.argv) > 1:
 		fileName = sys.argv[1]			
 
