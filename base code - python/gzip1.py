@@ -128,8 +128,26 @@ class GZIP:
 		self.fileSize = self.f.tell()
 		self.f.seek(0)
 
+	# Dinamic Huffman compressed block interpretation 
+	def readDinamicBlock (self):
+		HLIT = self.readBits(5)
+		HDIST = self.readBits(5)
+		HCLEN = self.readBits(4)
+  
+		return HLIT, HDIST, HCLEN
 
+	# Stores the code lengths for the code lengths alphabet
+	def storeCLENLengths(self, HCLEN):
+		# Order of lengths in which the bits are read
+		idxCLENcodeLens = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]
+		CLENcodeLens = [0 for i in range(19)]
 
+		# CLENcodeLens[idx] = N translates to: "the code for idx in the code lengths alphabet has a length of N"
+		# if N == 0, that indexes' code length is not used
+		for i in range(0, HCLEN+4):
+			temp = self.readBits(3)
+			CLENcodeLens[idxCLENcodeLens[i]] = temp
+		return CLENcodeLens
 
 	def decompress(self):
 		''' main function for decompressing the gzip file with deflate algorithm '''
@@ -161,23 +179,18 @@ class GZIP:
 				print('Error: Block %d not coded with Huffman Dynamic coding' % (numBlocks+1))
 				return
 			
-			#--- STUDENTS --- ADD CODE HERE 
-   
-			HLIT = self.readBits(5)
-			HDIST = self.readBits(5)
-			HCLEN = self.readBits(4)
-			
-			print("HLIT: " + bin(HLIT)[2:] + "\nHDIST: " + bin(HDIST)[2:] + "\nHCLEN: " + bin(HCLEN)[2:])
+			# if BTYPE == 10 in base 2 -> read the dinamic Huffman compression format 
+			if BTYPE == int('10', 2):		
+				# HLIT: # of literal/length  codes
+				# HDIST: # of distance codes 
+				# HCLEN: # of code length codes
+				HLIT, HDIST, HCLEN = self.readDinamicBlock()
 				
-			idxClenArray = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]
-			clenArray = [0 for i in range(18)]
+				print("HLIT:", bin(HLIT)[2:], HLIT, "\nHDIST:", bin(HDIST)[2:], HDIST, "\nHCLEN:", bin(HCLEN)[2:], HCLEN)
 
-			for i in range(0, HCLEN+4):
-				temp = self.readBits(3)
-				clenArray[idxClenArray.index(i)] = temp
-			print(clenArray)
-   
-   
+				CLENcodeLens = self.storeCLENLengths(HCLEN)   
+				print(CLENcodeLens)
+     
 			# update number of blocks read
 			numBlocks += 1
    
