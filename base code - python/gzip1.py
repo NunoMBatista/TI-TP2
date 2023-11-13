@@ -149,6 +149,37 @@ class GZIP:
 			CLENcodeLens[idxCLENcodeLens[i]] = temp
 		return CLENcodeLens
 
+	def createHuffmanFromLens(self, lenArray):
+		htr = HuffmanTree()
+		# max_len is the code with the largest length 
+		max_len = max(lenArray)
+		# max_symbol é o maior símbolo a codificar
+		max_symbol = len(lenArray)
+		
+		bl_count = [0 for i in range(max_len+1)]
+		# Get array with number of codes with length N (bl_count)
+		for N in range(1, max_len+1):
+			bl_count[N] += lenArray.count(N)
+
+		# Get first code of each code length 
+		code = 0
+		next_code = [0 for i in range(max_len+1)]
+		for bits in range(1, max_len+1):
+			code = (code + bl_count[bits-1]) << 1
+			next_code[bits] = code
+		print(next_code)
+  
+		# Define codes for each symbol in lexicographical order
+		for n in range(max_symbol):
+			# Length associated with symbol n 
+			length = lenArray[n]
+			if(length != 0):
+				#print("código de", n, ":", bin(next_code[length]))
+				htr.addNode(bin(next_code[length])[2:], n, verbose=True)
+				next_code[length] += 1
+		
+
+	
 	def decompress(self):
 		''' main function for decompressing the gzip file with deflate algorithm '''
 		
@@ -190,7 +221,8 @@ class GZIP:
 
 				CLENcodeLens = self.storeCLENLengths(HCLEN)   
 				print(CLENcodeLens)
-     
+
+				HuffmanTreeCLENs = self.createHuffmanFromLens(CLENcodeLens)
 			# update number of blocks read
 			numBlocks += 1
    
