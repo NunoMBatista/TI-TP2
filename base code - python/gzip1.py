@@ -128,16 +128,18 @@ class GZIP:
 		self.fileSize = self.f.tell()
 		self.f.seek(0)
 
-	# Dinamic Huffman compressed block interpretation 
 	def readDinamicBlock (self):
+		'''Interprets Dinamic Huffman compressed blocks'''
+  
 		HLIT = self.readBits(5)
 		HDIST = self.readBits(5)
 		HCLEN = self.readBits(4)
   
 		return HLIT, HDIST, HCLEN
 
-	# Stores the code lengths for the code lengths alphabet
 	def storeCLENLengths(self, HCLEN):
+		'''Stores the code lengths for the code lengths alphabet in an array'''
+     
 		# Order of lengths in which the bits are read
 		idxCLENcodeLens = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]
 		CLENcodeLens = [0 for i in range(19)]
@@ -149,7 +151,13 @@ class GZIP:
 			CLENcodeLens[idxCLENcodeLens[i]] = temp
 		return CLENcodeLens
 
-	def createHuffmanFromLens(self, lenArray):
+
+	def createHuffmanFromLens(self, lenArray, verbose=False):
+		'''Takes an array with symbols' Huffman codes' lengths and returns
+		a formated Huffman tree with said codes
+  
+		If verbose==True, it prints the codes as they're added to the tree'''
+  
 		htr = HuffmanTree()
 		# max_len is the code with the largest length 
 		max_len = max(lenArray)
@@ -174,10 +182,15 @@ class GZIP:
 			# Length associated with symbol n 
 			length = lenArray[n]
 			if(length != 0):
-				#print("código de", n, ":", bin(next_code[length]))
-				htr.addNode(bin(next_code[length])[2:], n, verbose=True)
+				#print("código de", n, "com comprimento", length, ":", bin(next_code[length]))
+				code = bin(next_code[length])[2:]
+				# In case there are 0s at the start of the code, we have to add them manualy
+				# length-len(code) 0s have to be added
+				extension = "0"*(length-len(code)) 
+				htr.addNode(extension + code, n, verbose)
 				next_code[length] += 1
 		
+		return htr;
 
 	
 	def decompress(self):
@@ -217,12 +230,15 @@ class GZIP:
 				# HCLEN: # of code length codes
 				HLIT, HDIST, HCLEN = self.readDinamicBlock()
 				
-				print("HLIT:", bin(HLIT)[2:], HLIT, "\nHDIST:", bin(HDIST)[2:], HDIST, "\nHCLEN:", bin(HCLEN)[2:], HCLEN)
+				print("HLIT:", bin(HLIT)[2:], "=", HLIT, 
+          			"\nHDIST:", bin(HDIST)[2:], "=", HDIST,
+             		"\nHCLEN:", bin(HCLEN)[2:], "=", HCLEN)
 
 				CLENcodeLens = self.storeCLENLengths(HCLEN)   
-				print(CLENcodeLens)
+				print("Code Lengths of indices i from the code length tree:", CLENcodeLens)
 
-				HuffmanTreeCLENs = self.createHuffmanFromLens(CLENcodeLens)
+				HuffmanTreeCLENs = self.createHuffmanFromLens(CLENcodeLens, False)
+				HuffmanTreeCLENs.findNode("11111", verbose=True)
 			# update number of blocks read
 			numBlocks += 1
    
