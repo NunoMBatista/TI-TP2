@@ -175,14 +175,12 @@ class GZIP:
 		for bits in range(1, max_len+1):
 			code = (code + bl_count[bits-1]) << 1
 			next_code[bits] = code
-		print(next_code)
   
 		# Define codes for each symbol in lexicographical order
 		for n in range(max_symbol):
 			# Length associated with symbol n 
 			length = lenArray[n]
 			if(length != 0):
-				#print("código de", n, "com comprimento", length, ":", bin(next_code[length]))
 				code = bin(next_code[length])[2:]
 				# In case there are 0s at the start of the code, we have to add them manualy
 				# length-len(code) 0s have to be added
@@ -237,8 +235,7 @@ class GZIP:
 				CLENcodeLens = self.storeCLENLengths(HCLEN)   
 				print("Code Lengths of indices i from the code length tree:", CLENcodeLens)
 
-				HuffmanTreeCLENs = self.createHuffmanFromLens(CLENcodeLens, False)
-				HuffmanTreeCLENs.findNode("11111", verbose=True)
+				HuffmanTreeCLENs = self.createHuffmanFromLens(CLENcodeLens, True)
 			# update number of blocks read
 			numBlocks += 1
    
