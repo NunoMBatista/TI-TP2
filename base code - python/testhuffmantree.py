@@ -82,3 +82,6 @@ pos = search_bit_by_bit(code, True)
 
 code = "1110"
 pos = search_bit_by_bit(code, True)
+
+arr = ["a", "b", "c", "d", "e", "f"]
+print(arr[-4:-4+2])

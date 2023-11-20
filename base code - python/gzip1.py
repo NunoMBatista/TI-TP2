@@ -151,7 +151,6 @@ class GZIP:
 			CLENcodeLens[idxCLENcodeLens[i]] = temp
 		return CLENcodeLens
 
-
 	def createHuffmanFromLens(self, lenArray, verbose=False):
 		'''Takes an array with symbols' Huffman codes' lengths and returns
 		a formated Huffman tree with said codes
@@ -190,7 +189,124 @@ class GZIP:
 		
 		return htr;
 
-	
+	def storeLITLENcodeLens(self, HLIT, CLENTree):
+		'''Takes the code lengths huffmantree and stores the 
+		HLIT + 257 lit/comp code lengths accordingly'''
+
+		# Array where the code lengths will be stored 
+		LITLENcodeLens = [] 
+		#inarray = 0
+		prevCode = -1
+		while (len(LITLENcodeLens) < HLIT + 257):
+			CLENTree.resetCurNode()
+			found = False
+			while(not found):
+				curBit = self.readBits(1)
+				code = CLENTree.nextNode(str(curBit))
+				if(code != -1 and code != -2):
+					found = True
+     
+			if(code == 18):
+				ammount = self.readBits(7)
+				LITLENcodeLens += [0]*(11 + ammount)
+			if(code == 17):
+				ammount = self.readBits(3)
+				LITLENcodeLens += [0]*(3 + ammount)
+			if(code == 16):
+				ammount = self.readBits(2)
+				LITLENcodeLens += [prevCode]*(3 + ammount)
+			elif(code >= 0 and code <= 15):
+				LITLENcodeLens += [code]
+				prevCode = code
+
+		return LITLENcodeLens
+
+	def storeDISTcodeLens(self, HDIST, CLENTree):
+		'''Takes the code lengths huffmantree and stores the 
+		HDIST distance code lengths accordingly'''
+
+		# Array where the code lengths will be stored 
+		DISTcodeLens = [] 
+		#inarray = 0
+		prevCode = -1
+		while (len(DISTcodeLens) < HDIST + 1):
+			CLENTree.resetCurNode()
+			found = False
+			while(not found):
+				curBit = self.readBits(1)
+				code = CLENTree.nextNode(str(curBit))
+				if(code != -1 and code != -2):
+					found = True
+     
+			if(code == 18):
+				ammount = self.readBits(7)
+				DISTcodeLens += [0]*(11 + ammount)
+			if(code == 17):
+				ammount = self.readBits(3)
+				DISTcodeLens += [0]*(3 + ammount)
+			if(code == 16):
+				ammount = self.readBits(2)
+				DISTcodeLens += [prevCode]*(3 + ammount)
+			elif(code >= 0 and code <= 15):
+				DISTcodeLens += [code]
+				prevCode = code
+
+		return DISTcodeLens
+
+	def decompressLZ77(self, HuffmanTreeLITLEN, HuffmanTreeDIST):
+		ExtraLITLENBits = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5]
+		ExtraLITLENLens = [11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227]
+		ExtraDISTBits = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13]		
+		ExtraDISTLens = [5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577]
+
+		codeLITLEN = -1
+		output = []
+		while(codeLITLEN != 256):
+			HuffmanTreeLITLEN.resetCurNode()
+			foundLITLEN = False
+			distFound = True
+
+			while(not foundLITLEN):
+				curBit = str(self.readBits(1))
+				codeLITLEN = HuffmanTreeLITLEN.nextNode(curBit)
+    
+				if (codeLITLEN != -1 and codeLITLEN != -2):
+					foundLITLEN = True
+					if(codeLITLEN < 256):
+						output += [codeLITLEN]
+					if(codeLITLEN > 256):
+						distFound = False
+						if(codeLITLEN < 265):
+							length = codeLITLEN - 257 + 3
+						else:
+							dif = codeLITLEN - 265
+							readExtra = ExtraLITLENBits[dif]
+							lenExtra = ExtraLITLENLens[dif]
+							length = lenExtra + self.readBits(readExtra)
+
+						HuffmanTreeDIST.resetCurNode()
+						while(not distFound):
+							distBit = str(self.readBits(1))
+							codeDIST = HuffmanTreeDIST.nextNode(distBit)
+       
+							if(codeDIST != -1 and codeDIST != -2):
+								distFound = True
+								if(codeDIST < 4):
+									distance = codeDIST + 1
+
+								else:
+									dif = codeDIST - 4
+									readExtra = ExtraDISTBits[dif]
+									distExtra = ExtraDISTLens[dif]
+									distance = distExtra + self.readBits(readExtra)
+								
+								#outputCopy = output[-distance+2:-distance+2+length]
+
+								for i in range(length):
+									output.append(output[-distance])
+		return output
+
+ 
 	def decompress(self):
 		''' main function for decompressing the gzip file with deflate algorithm '''
 		
@@ -228,17 +344,37 @@ class GZIP:
 				# HCLEN: # of code length codes
 				HLIT, HDIST, HCLEN = self.readDinamicBlock()
 				
-				print("HLIT:", bin(HLIT)[2:], "=", HLIT, 
-          			"\nHDIST:", bin(HDIST)[2:], "=", HDIST,
-             		"\nHCLEN:", bin(HCLEN)[2:], "=", HCLEN)
+				# print("HLIT:", bin(HLIT)[2:], "=", HLIT, 
+          		# 	"\nHDIST:", bin(HDIST)[2:], "=", HDIST,
+             	# 	"\nHCLEN:", bin(HCLEN)[2:], "=", HCLEN)
 
 				CLENcodeLens = self.storeCLENLengths(HCLEN)   
-				print("Code Lengths of indices i from the code length tree:", CLENcodeLens)
+				#print("Code Lengths of indices i from the code length tree:", CLENcodeLens)
 
-				HuffmanTreeCLENs = self.createHuffmanFromLens(CLENcodeLens, True)
+				HuffmanTreeCLENs = self.createHuffmanFromLens(CLENcodeLens, verbose=False)
+				LITLENcodeLens = self.storeLITLENcodeLens(HLIT, HuffmanTreeCLENs)
+				
+				HuffmanTreeLITLEN = self.createHuffmanFromLens(LITLENcodeLens, verbose=False)
+
+				# for i in range(0, len(LITLENcodeLens)):
+				# 	print(i, ":", LITLENcodeLens[i])
+     
+				DISTcodeLens = self.storeDISTcodeLens(HDIST, HuffmanTreeCLENs)
+				# for i in range(0, len(DISTcodeLens)):
+				# 	print(i, ":", DISTcodeLens[i])
+     
+				HuffmanTreeDIST = self.createHuffmanFromLens(DISTcodeLens, verbose=False)
+    
+				output = self.decompressLZ77(HuffmanTreeLITLEN, HuffmanTreeDIST)
+
+				# for i in output:
+				# 	print(i, end="")
 			# update number of blocks read
 			numBlocks += 1
    
+		f = open(self.gzh.fName, 'wb')
+		f.write(bytes(output))
+		f.close()
 
 		# close file			
 		
