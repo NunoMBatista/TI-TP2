@@ -205,7 +205,7 @@ class GZIP:
 				code = CLENTree.nextNode(str(curBit))
 				if(code != -1 and code != -2):
 					found = True
-     
+	   
 			if(code == 18):
 				ammount = self.readBits(7)
 				LITLENcodeLens += [0]*(11 + ammount)
@@ -218,7 +218,7 @@ class GZIP:
 			elif(code >= 0 and code <= 15):
 				LITLENcodeLens += [code]
 				prevCode = code
-
+    
 		return LITLENcodeLens
 
 	def storeDISTcodeLens(self, HDIST, CLENTree):
