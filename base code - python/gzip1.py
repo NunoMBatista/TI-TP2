@@ -62,7 +62,7 @@ class GZIPHeader:
 		
 		# OS (not processed...)
 		self.OS = f.read(1)[0]
-		
+  
 		# --- Check Flags
 		self.FLG_FTEXT = self.FLG & 0x01
 		self.FLG_FHCRC = (self.FLG & 0x02) >> 1
@@ -128,7 +128,7 @@ class GZIP:
 		self.fileSize = self.f.tell()
 		self.f.seek(0)
 
-	def readDinamicBlock (self):
+	def readDynamicBlock (self):
 		'''Interprets Dinamic Huffman compressed blocks'''
   
 		HLIT = self.readBits(5)
@@ -197,27 +197,41 @@ class GZIP:
 		LITLENcodeLens = [] 
 		#inarray = 0
 		prevCode = -1
+  
 		while (len(LITLENcodeLens) < HLIT + 257):
+			# Sets the current node to the root of the tree
 			CLENTree.resetCurNode()
 			found = False
+			# While reading, if a leaf hasn't been found, keep searching bit by bit
 			while(not found):
 				curBit = self.readBits(1)
+				# Updates current node acording to the bit just read
 				code = CLENTree.nextNode(str(curBit))
 				if(code != -1 and code != -2):
+					# If a leaf has been found, break out of the loop
 					found = True
 	   
+			# SPECIAL CHARACTERS
+			# 18 - Reads 7 extra bits 
+			# 17 - Reads 3 extra bits
+			# 16 - Reads 2 extra bits
 			if(code == 18):
 				ammount = self.readBits(7)
+				# According to the 7 bits just read, set the following 11-139 values on the length array to 0 
 				LITLENcodeLens += [0]*(11 + ammount)
 			if(code == 17):
 				ammount = self.readBits(3)
+				# According to the 3 bits just read, set the following 3-11 values on the length array to 0 
 				LITLENcodeLens += [0]*(3 + ammount)
 			if(code == 16):
 				ammount = self.readBits(2)
+				# According to the 2 bits just read, set the following 3-6 values on the length array to the latest length read
 				LITLENcodeLens += [prevCode]*(3 + ammount)
 			elif(code >= 0 and code <= 15):
+				# If a special character isn't found, just set the next code length to the value found
 				LITLENcodeLens += [code]
-				prevCode = code
+			# Set the prevCode to the current code in case the special character 16 is found on the next iteration
+			prevCode = code
     
 		return LITLENcodeLens
 
@@ -227,85 +241,131 @@ class GZIP:
 
 		# Array where the code lengths will be stored 
 		DISTcodeLens = [] 
-		#inarray = 0
-		prevCode = -1
+  
 		while (len(DISTcodeLens) < HDIST + 1):
+			# Sets the current node to the root of the tree
 			CLENTree.resetCurNode()
 			found = False
+   
+			# While reading, if a leaf hasn't been found, keep searching bit by bit
 			while(not found):
 				curBit = self.readBits(1)
 				code = CLENTree.nextNode(str(curBit))
 				if(code != -1 and code != -2):
 					found = True
-     
+
+			# SPECIAL CHARACTERS
+			# 18 - Reads 7 extra bits 
+			# 17 - Reads 3 extra bits
+			# 16 - Reads 2 extra bits
 			if(code == 18):
 				ammount = self.readBits(7)
+				# According to the 7 bits just read, set the following 11-139 values on the length array to 0 
 				DISTcodeLens += [0]*(11 + ammount)
 			if(code == 17):
 				ammount = self.readBits(3)
+				# According to the 3 bits just read, set the following 3-11 values on the length array to 0 
 				DISTcodeLens += [0]*(3 + ammount)
 			if(code == 16):
 				ammount = self.readBits(2)
+				# According to the 2 bits just read, set the following 3-6 values on the length array to the latest length read
 				DISTcodeLens += [prevCode]*(3 + ammount)
 			elif(code >= 0 and code <= 15):
+				# If a special character isn't found, just set the next code length to the value found
 				DISTcodeLens += [code]
 				prevCode = code
 
 		return DISTcodeLens
 
 	def decompressLZ77(self, HuffmanTreeLITLEN, HuffmanTreeDIST):
+     
+		# How many bits required to read if length code read is larger than 265
 		ExtraLITLENBits = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5]
+		# Length required to add if the length code read if larger than 265
 		ExtraLITLENLens = [11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227]
+		
+		# How many bits required to read if the distance code read is larger than 4
 		ExtraDISTBits = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13]		
+		# Distance required to add if the special character read if larger than 4
 		ExtraDISTLens = [5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577]
 
+
 		codeLITLEN = -1
+
+		# Array to store the output
 		output = []
+  
+		# Read from the input stream until 256 is found
 		while(codeLITLEN != 256):
+			# Resets the current node to the tree's root
 			HuffmanTreeLITLEN.resetCurNode()
+
 			foundLITLEN = False
 			distFound = True
 
+			# While a literal or length isn't found in the LITLEN tree, keep searching bit by bit
 			while(not foundLITLEN):
 				curBit = str(self.readBits(1))
+				# Updates the current node according the the bit just read
 				codeLITLEN = HuffmanTreeLITLEN.nextNode(curBit)
     
+				# If a leaf is reached in the LITLEN tree, follow the instructions according to the value found
 				if (codeLITLEN != -1 and codeLITLEN != -2):
 					foundLITLEN = True
+     
+					# If the code reached is in the interval [0, 256[, just append the value read corresponding a the literal to the output array
 					if(codeLITLEN < 256):
 						output += [codeLITLEN]
+
+					# If the code is in the interval [257, 285], it is refering to the length of the string to copy
 					if(codeLITLEN > 256):
+         
 						distFound = False
+      
+						# if the code is in the interval [257, 265[, sets the length of the string to copy to the code read - 257 + 3
 						if(codeLITLEN < 265):
 							length = codeLITLEN - 257 + 3
+       
+						# the codes in the interval [265, 285] are special and require more bits to be read
 						else:
+							# dif defines the indices in the "Extra array's" to be used 
 							dif = codeLITLEN - 265
+							# How many extra bits will need to be read
 							readExtra = ExtraLITLENBits[dif]
+							# How much extra length to add
 							lenExtra = ExtraLITLENLens[dif]
 							length = lenExtra + self.readBits(readExtra)
 
+						# Resets the curent node in the distance tree to it's root
 						HuffmanTreeDIST.resetCurNode()
+						# While a distance isn's found in the DIST tree, keep searching bit by bit
 						while(not distFound):
 							distBit = str(self.readBits(1))
+							# Updates the current node according to the bit just read
 							codeDIST = HuffmanTreeDIST.nextNode(distBit)
-       
+
+							# If a leaf is reached in the LITLEN tree, follow the instructions according to the value found
 							if(codeDIST != -1 and codeDIST != -2):
 								distFound = True
+
+								# If the code read is in the interval [0, 4[ define the distance to go back to the code read + 1
 								if(codeDIST < 4):
 									distance = codeDIST + 1
 
+								# The codes in the interval [4, 29] are special and require more bits to be read
 								else:
+									# dif defines the indices in the "Extra arrays" to be used
 									dif = codeDIST - 4
 									readExtra = ExtraDISTBits[dif]
+									# How many extra bits need to be read
 									distExtra = ExtraDISTLens[dif]
+									# How much extra distance to add
 									distance = distExtra + self.readBits(readExtra)
 								
-								#outputCopy = output[-distance+2:-distance+2+length]
-
+								# For each one of the range(length) iterations, copy the character at index len(output)-distance to the end of the output array
 								for i in range(length):
 									output.append(output[-distance])
 		return output
-
  
 	def decompress(self):
 		''' main function for decompressing the gzip file with deflate algorithm '''
@@ -342,42 +402,41 @@ class GZIP:
 				# HLIT: # of literal/length  codes
 				# HDIST: # of distance codes 
 				# HCLEN: # of code length codes
-				HLIT, HDIST, HCLEN = self.readDinamicBlock()
-				
-				# print("HLIT:", bin(HLIT)[2:], "=", HLIT, 
-          		# 	"\nHDIST:", bin(HDIST)[2:], "=", HDIST,
-             	# 	"\nHCLEN:", bin(HCLEN)[2:], "=", HCLEN)
-
+				HLIT, HDIST, HCLEN = self.readDynamicBlock()
+              
+				# Store the CLEN tree's code lens in a pre-determined order 
 				CLENcodeLens = self.storeCLENLengths(HCLEN)   
 				#print("Code Lengths of indices i from the code length tree:", CLENcodeLens)
-
+    
+				# Based on the CLEN tree's code lens, define a huffman tree for CLEN
 				HuffmanTreeCLENs = self.createHuffmanFromLens(CLENcodeLens, verbose=False)
+    
+				# Store the literal and length tree code lens based on the CLEN tree codes
 				LITLENcodeLens = self.storeLITLENcodeLens(HLIT, HuffmanTreeCLENs)
 				
+				# Define the literal and length huffman tree based on the lengths of it's codes
 				HuffmanTreeLITLEN = self.createHuffmanFromLens(LITLENcodeLens, verbose=False)
-
-				# for i in range(0, len(LITLENcodeLens)):
-				# 	print(i, ":", LITLENcodeLens[i])
      
+				# Store the distance tree code lens based on the CLEN tree codes
 				DISTcodeLens = self.storeDISTcodeLens(HDIST, HuffmanTreeCLENs)
-				# for i in range(0, len(DISTcodeLens)):
-				# 	print(i, ":", DISTcodeLens[i])
-     
+    
+				# Define the distance huffman tree based on the lengths of it's codes
 				HuffmanTreeDIST = self.createHuffmanFromLens(DISTcodeLens, verbose=False)
     
+				# Based on the trees defined so far, decompress the data according to the Lempel-Ziv77 algorthm 
 				output = self.decompressLZ77(HuffmanTreeLITLEN, HuffmanTreeDIST)
 
-				# for i in output:
-				# 	print(i, end="")
 			# update number of blocks read
 			numBlocks += 1
    
+		# Opens the output file in "write binary mode"
 		f = open(self.gzh.fName, 'wb')
+		# Write the bytes corresponding to the output array elements
 		f.write(bytes(output))
-		f.close()
-
-		# close file			
+		# Close the file
+		f.close		
 		
+
 		self.f.close()	
 		print("End: %d block(s) analyzed." % numBlocks)
 	
@@ -428,7 +487,6 @@ class GZIP:
 		return value
 
 	
-
 
 if __name__ == '__main__':
 
