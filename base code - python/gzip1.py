@@ -317,6 +317,7 @@ class GZIP:
 								# For each one of the range(length) iterations, copy the character at index len(output)-distance to the end of the output array
 								for i in range(length):
 									output.append(output[-distance])
+		print(output)
 		return output
  
 	def decompress(self):
