@@ -341,7 +341,7 @@ class GZIP:
 		# MAIN LOOP - decode block by block
 		BFINAL = 0	
 
-		# Opens the output file in "write binary mode"
+		# Opens the output file in "write" binary mode
 		f = open(self.gzh.fName, 'wb')		
 
 		output = []
@@ -364,7 +364,7 @@ class GZIP:
 			CLENcodeLens = self.storeCLENLengths(HCLEN)   
 			#print("Code Lengths of indices i from the code length tree:", CLENcodeLens)
 				
-			# Based on the CLEN tree's code lens, define a huffman tree for CLEN
+			# Based on the CLEN tree's code lens, define an huffman tree for CLEN
 			HuffmanTreeCLENs = self.createHuffmanFromLens(CLENcodeLens, verbose=False)
 
 			# Store the literal and length tree code lens based on the CLEN tree codes
