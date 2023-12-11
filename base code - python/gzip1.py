@@ -210,17 +210,17 @@ class GZIP:
 			# 17 - Reads 3 extra bits
 			# 16 - Reads 2 extra bits
 			if(code == 18):
-				ammount = self.readBits(7)
-				# According to the 7 bits just read, set the following 11-139 values on the length array to 0 
-				treeCodeLens += [0]*(11 + ammount)
+				amount = self.readBits(7)
+				# According to the 7 bits just read, set the following 11-138 values on the length array to 0 
+				treeCodeLens += [0]*(11 + amount)
 			if(code == 17):
-				ammount = self.readBits(3)
-				# According to the 3 bits just read, set the following 3-11 values on the length array to 0 
-				treeCodeLens += [0]*(3 + ammount)
+				amount = self.readBits(3)
+				# According to the 3 bits just read, set the following 3-10 values on the length array to 0 
+				treeCodeLens += [0]*(3 + amount)
 			if(code == 16):
-				ammount = self.readBits(2)
+				amount = self.readBits(2)
 				# According to the 2 bits just read, set the following 3-6 values on the length array to the latest length read
-				treeCodeLens += [prevCode]*(3 + ammount)
+				treeCodeLens += [prevCode]*(3 + amount)
 			elif(code >= 0 and code <= 15):
 				# If a special character isn't found, just set the next code length to the value found
 				treeCodeLens += [code]
@@ -240,19 +240,18 @@ class GZIP:
 		# Distance required to add if the special character read if larger than 4
 		ExtraDISTLens = [5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577]
 
-
 		codeLITLEN = -1
 
 		# Array to store the output
 		output = []
 
-  
 		# Read from the input stream until 256 is found
 		while(codeLITLEN != 256):
 			# Resets the current node to the tree's root
 			HuffmanTreeLITLEN.resetCurNode()
 
 			foundLITLEN = False
+			# A distance is considered "found" by default in case the character read is just a literal
 			distFound = True
 
 			# While a literal or length isn't found in the LITLEN tree, keep searching bit by bit
@@ -375,7 +374,6 @@ class GZIP:
 			HuffmanTreeLITLEN = self.createHuffmanFromLens(LITLENcodeLens, verbose=False)
 	
 			# Store the distance tree code lens based on the CLEN tree codes
-			#DISTcodeLens = self.storeDISTcodeLens(HDIST, HuffmanTreeCLENs)
 			DISTcodeLens = self.storeTreeCodeLens(HDIST + 1, HuffmanTreeCLENs)
 
 			# Define the distance huffman tree based on the lengths of it's codes
