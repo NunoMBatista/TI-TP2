@@ -228,12 +228,12 @@ class GZIP:
 
 		return treeCodeLens
 
-	def decompressLZ77(self, HuffmanTreeLITLEN, HuffmanTreeDIST):
+	def decompressLZ77(self, HuffmanTreeLITLEN, HuffmanTreeDIST, output):
      
 		# How many bits required to read if length code read is larger than 265
-		ExtraLITLENBits = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5]
+		ExtraLITLENBits = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0]
 		# Length required to add if the length code read if larger than 265
-		ExtraLITLENLens = [11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227]
+		ExtraLITLENLens = [11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258]
 	
 		# How many bits required to read if the distance code read is larger than 4
 		ExtraDISTBits = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13]		
@@ -241,9 +241,6 @@ class GZIP:
 		ExtraDISTLens = [5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577]
 
 		codeLITLEN = -1
-
-		# Array to store the output
-		output = []
 
 		# Read from the input stream until 256 is found
 		while(codeLITLEN != 256):
@@ -380,7 +377,7 @@ class GZIP:
 			HuffmanTreeDIST = self.createHuffmanFromLens(DISTcodeLens, verbose=False)
 
 			# Based on the trees defined so far, decompress the data according to the Lempel-Ziv77 algorthm 
-			output += self.decompressLZ77(HuffmanTreeLITLEN, HuffmanTreeDIST)
+			output += self.decompressLZ77(HuffmanTreeLITLEN, HuffmanTreeDIST, output)
    
 			# Only the last 32768 characters should be kept in memory
 			if(len(output) > 32768):
