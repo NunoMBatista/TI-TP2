@@ -379,13 +379,14 @@ class GZIP:
 			# Based on the trees defined so far, decompress the data according to the Lempel-Ziv77 algorthm 
 			output += self.decompressLZ77(HuffmanTreeLITLEN, HuffmanTreeDIST, output)
    
+
 			# Only the last 32768 characters should be kept in memory
 			if(len(output) > 32768):
 				# Write every charater that exceeds the 327680 range to the file
 				f.write(bytes(output[0 : len(output) - 32768]))
 				# Keep the rest in the output array
 				output = output[len(output) - 32768 :]
-				
+
 		# update number of blocks read
 		numBlocks += 1
 
@@ -449,7 +450,7 @@ class GZIP:
 if __name__ == '__main__':
 
 	# gets filename from command line if provided
-	fileName = "FAQ.txt.gz"
+	fileName = "sample_large_text.txt.gz"
 	if len(sys.argv) > 1:
 		fileName = sys.argv[1]			
 
