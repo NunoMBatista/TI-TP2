@@ -387,8 +387,8 @@ class GZIP:
 				# Keep the rest in the output array
 				output = output[len(output) - 32768 :]
 
-		# update number of blocks read
-		numBlocks += 1
+			# update number of blocks read
+			numBlocks += 1
 
 		# Write the bytes corresponding to the output array elements
 		f.write(bytes(output))
