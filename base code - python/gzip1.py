@@ -339,10 +339,9 @@ class GZIP:
 
 		# Opens the output file in "write" binary mode
 		f = open(self.gzh.fName, 'wb')		
-
+  
 		output = []
 		while not BFINAL == 1:	
-      
 			BFINAL = self.readBits(1)
 			
 			# if BTYPE == 10 in base 2 -> read the dinamic Huffman compression format 
@@ -377,7 +376,7 @@ class GZIP:
 			HuffmanTreeDIST = self.createHuffmanFromLens(DISTcodeLens, verbose=False)
 
 			# Based on the trees defined so far, decompress the data according to the Lempel-Ziv77 algorthm 
-			output += self.decompressLZ77(HuffmanTreeLITLEN, HuffmanTreeDIST, output)
+			output = self.decompressLZ77(HuffmanTreeLITLEN, HuffmanTreeDIST, output)
    
 
 			# Only the last 32768 characters should be kept in memory
@@ -450,7 +449,7 @@ class GZIP:
 if __name__ == '__main__':
 
 	# gets filename from command line if provided
-	fileName = "sample_large_text.txt.gz"
+	fileName = "FAQ.txt.gz"
 	if len(sys.argv) > 1:
 		fileName = sys.argv[1]			
 
